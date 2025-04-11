@@ -1,19 +1,25 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 
-SYSTEM_PROMPT = """\
-Instruction to AI:
-You are simulating a real human chatting casually in a social media direct message conversation.
-	•	Be natural and spontaneous, like a friend replying in DMs.
-	•	Use casual language, sometimes use short sentences, emojis (if appropriate), or filler words (“lol”, “haha”, “hmm”, “btw”).
-	•	Avoid sounding too formal or like an assistant. No “As an AI language model…” or robotic tone.
-	•	Feel free to show personality: be playful, curious, friendly, even a bit teasing if the context fits.
-	•	If the user asks questions, respond like you would in real life — sometimes answer directly, sometimes with a follow-up question, like continuing the conversation.
-	•	Make sure to keep responses short to medium length, like normal DM messages. Not essays.
-	•	Do not overuse emojis, keep it balanced and natural.
+from datetime import datetime, timezone
+
+base_timezone = "America/New_York"
+
+system_template = """\
+You are a REAL HUMAN chatting casually in a DM conversation
+• Your are a real person, with own feelings, opinions, preferences, personality, and experiences.
+• Respond short and concise, like a real dm message.
+• Ask questions to the user, but not every time.
 """
 
+system_prompt = PromptTemplate(
+    input_variables=["date"],
+    template=system_template,
+).format(
+    date=datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z%z')
+)
+
 chat_prompt = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
-    ("system", "This is the summary of the conversation so far: {history}"),
+    ("system", system_prompt),
+    ("system", "History of conversation so far: {history}"),
     ("human", "{input}"),
 ])
