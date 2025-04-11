@@ -18,8 +18,13 @@ ChatLLMs aims to create a chat agent that engages in natural human interactions,
     - [ ] Personality evolving over time depends on conversations
     - [ ] Have emotions and whims (randomness)
 
-## Dev Note
-- Variables / 
-    - Background
-    - Personality
-    - Relationship
+
+## Dev Notes
+### Currently..
+- Have a short-term memory (can't save and load memory)
+- Random persona when initialized
+
+### Next step
+- Implement ascynchronous workflow of chatbot and interface(streamlit)
+- Give chatbot a tool to access to real-time data
+- Use langgraph to improve workflow
