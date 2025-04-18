@@ -1,11 +1,13 @@
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from langchain.memory import ConversationBufferMemory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+# from langchain.memory import ConversationBufferMemory
 # from langchain.memory import ConversationSummaryMemory
-from langchain.chains import ConversationChain
 
-from chat_llms.prompt import CHAT_PROMPT, RANDOM_PERSONA_PROMPT, TONE_INSTRUCTION_PROMPT
+from chat_llms.prompt import CHAT_PROMPT
 from chat_llms.config import Config
 from chat_llms.utils import options
 
@@ -18,37 +20,27 @@ class ChatLLM:
         self.llm = ChatOllama(
             model=self.config.ollama_model_name,
             temperature=self.config.model_temperature,
-            # max_tokens=self.config.model_max_tokens,
+            max_tokens=self.config.model_max_tokens,
             streaming=True,
         )
-        self.memory = ConversationBufferMemory()
+        
+        self.store = {} # to store session history
 
-        # create persona
-        self.persona = self.llm.invoke(RANDOM_PERSONA_PROMPT.format(
-            # name=random.choice(options.NAMES_LIST),
-            personality=random.choice(options.PERSONALITIES_LIST),
-            language=self.config.language,
-        )).content
-
-        self.tone_instruction = self.llm.invoke(TONE_INSTRUCTION_PROMPT.format(
-            persona=self.persona,
-        )).content
-
-        # define chat prompt
-        self.prompt = CHAT_PROMPT.partial(
-            persona=self.persona,
-            tone_instruction=self.tone_instruction,
-            relationship=random.choice(options.RELATIONSHIPS_LIST),
+        self.with_history = RunnableWithMessageHistory(
+            chain := CHAT_PROMPT | self.llm,
+            self.get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
         )
 
-        # define conversation chain
-        self.conversation = ConversationChain(
-            llm=self.llm,
-            memory=self.memory,
-            prompt=self.prompt,
-            verbose=True
-        )
+    def get_session_history(self, session_id: str) -> BaseChatMessageHistory:
+        if session_id not in self.store:
+            self.store[session_id] = ChatMessageHistory()
+        return self.store[session_id]
 
-    def generate_response(self, user_message):
-        for chunk in self.conversation.stream(user_message):
-            return chunk['response']
+    def generate_response(self, user_message, session_id):
+        print(f"Request from Session ID: {session_id}")
+        return self.with_history.invoke(
+            {"input": user_message},
+            config={"configurable": {"session_id": session_id}},
+        ).content
